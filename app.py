@@ -7,14 +7,12 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
-# Configure Streamlit page
 st.set_page_config(
     page_title="GitHub Repo Analyzer",
     page_icon="📊",
     layout="wide"
 )
 
-# Load environment variables
 load_dotenv()
 
 # GitHub API token
@@ -22,9 +20,8 @@ GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 headers = {'Authorization': f'token {GITHUB_TOKEN}'} if GITHUB_TOKEN else {}
 
 def get_readme_content(owner, repo):
-    """Fetch and decode README content from GitHub repository"""
+    """Fetching and decoding README content from GitHub repository"""
     try:
-        # Fetch README content
         readme_url = f'https://api.github.com/repos/{owner}/{repo}/readme'
         readme_response = requests.get(readme_url, headers=headers)
         
@@ -39,13 +36,13 @@ def get_readme_content(owner, repo):
         return None
 
 def get_repo_info(repo_url):
-    """Extract owner and repo name from GitHub URL and fetch repository data"""
+    """Extracting owner and repo name from GitHub URL and fetch repository data"""
     try:
-        # Parse URL to get owner and repo
+        # Parsing URL to get owner and repo
         parts = repo_url.strip('/').split('/')
         owner, repo = parts[-2], parts[-1]
         
-        # Fetch repository information
+        # Fetching repository information
         repo_api_url = f'https://api.github.com/repos/{owner}/{repo}'
         repo_response = requests.get(repo_api_url, headers=headers)
         repo_data = repo_response.json()
@@ -54,17 +51,17 @@ def get_repo_info(repo_url):
             st.error(f"Error: {repo_data.get('message', 'Failed to fetch repository data')}")
             return None
         
-        # Fetch commit activity
+        # Fetching commit activity
         commits_url = f'{repo_api_url}/stats/commit_activity'
         commits_response = requests.get(commits_url, headers=headers)
         commits_data = commits_response.json() if commits_response.status_code == 200 else []
         
-        # Fetch contributors
+        # Fetching contributors
         contributors_url = f'{repo_api_url}/contributors'
         contributors_response = requests.get(contributors_url, headers=headers)
         contributors_data = contributors_response.json() if contributors_response.status_code == 200 else []
         
-        # Fetch README content
+        # Fetching README content
         readme_content = get_readme_content(owner, repo)
         
         return {
@@ -78,7 +75,7 @@ def get_repo_info(repo_url):
         return None
 
 def get_language_stats(repo_data):
-    """Extract language statistics from repository data"""
+    """Extracting language statistics from repository data"""
     if not repo_data.get('languages_url'):
         return {}
     
@@ -88,7 +85,7 @@ def get_language_stats(repo_data):
     return {}
 
 def generate_report(repo_data, commits_data, contributors_data, is_comparison=False):
-    """Generate a detailed report for the repository"""
+    """Generating a detailed report for the repository"""
     report = []
     
     # Repository metadata
@@ -122,7 +119,7 @@ def generate_report(repo_data, commits_data, contributors_data, is_comparison=Fa
     return "\n".join(report)
 
 def display_repo_metrics(repo_data, column):
-    """Display repository metrics in a column"""
+    """Displaying the repository metrics"""
     with column:
         col1, col2 = st.columns(2)
         with col1:
@@ -133,7 +130,7 @@ def display_repo_metrics(repo_data, column):
             st.metric("Watchers", repo_data['watchers_count'])
 
 def display_repo_details(repo_data, col):
-    """Display repository details in the given column"""
+    """Displaying repository details"""
     with col:
         st.write(f"**Description:** {repo_data['description'] or 'No description'}")
         st.write(f"**Language:** {repo_data['language'] or 'Not specified'}")
@@ -143,16 +140,15 @@ def display_repo_details(repo_data, col):
         st.write(f"**Last Updated:** {datetime.strptime(repo_data['updated_at'], '%Y-%m-%dT%H:%M:%SZ').strftime('%B %d, %Y')}")
 
 def filter_commits_by_timeframe(commits_data, timeframe_weeks):
-    """Filter commit data based on selected timeframe"""
+    """Filtering commit data based on selected timeframe"""
     if not commits_data or timeframe_weeks >= len(commits_data):
         return commits_data
     return commits_data[-timeframe_weeks:]
 
 def plot_commit_activity(commits_data1, commits_data2=None, repo1_name="Repository 1", repo2_name="Repository 2", timeframe="All Time"):
-    """Plot commit activity comparison chart with timeframe filtering"""
+    """Plotting commit activity comparison chart with timeframe filtering"""
     fig = go.Figure()
     
-    # Convert timeframe to number of weeks
     timeframe_mapping = {
         "Last Week": 1,
         "Last Month": 4,
@@ -193,12 +189,10 @@ def plot_commit_activity(commits_data1, commits_data2=None, repo1_name="Reposito
     return fig
 
 def plot_language_comparison(lang_data1, lang_data2=None, repo1_name="Repository 1", repo2_name="Repository 2"):
-    """Plot language usage comparison using pie charts"""
+    """Plotting language usage using pie charts"""
     if lang_data2:
-        # Create subplots for two pie charts side by side
         fig = go.Figure()
         
-        # First repository pie chart
         if lang_data1:
             total1 = sum(lang_data1.values())
             fig.add_trace(go.Pie(
@@ -212,7 +206,6 @@ def plot_language_comparison(lang_data1, lang_data2=None, repo1_name="Repository
                 marker={'colors': px.colors.qualitative.Set3}
             ))
         
-        # Second repository pie chart
         if lang_data2:
             total2 = sum(lang_data2.values())
             fig.add_trace(go.Pie(
@@ -226,7 +219,6 @@ def plot_language_comparison(lang_data1, lang_data2=None, repo1_name="Repository
                 marker={'colors': px.colors.qualitative.Set3}
             ))
     else:
-        # Single repository pie chart
         fig = go.Figure()
         if lang_data1:
             total1 = sum(lang_data1.values())
@@ -247,15 +239,15 @@ def plot_language_comparison(lang_data1, lang_data2=None, repo1_name="Repository
     return fig
 
 def filter_contributors(contributors_data, username_filter=None):
-    """Filter contributors based on username"""
+    """Filtering contributors based on username"""
     if not username_filter:
-        return contributors_data[:10]  # Return top 10 if no filter
+        return contributors_data[:10]
     
     filtered = [c for c in contributors_data if username_filter.lower() in c['login'].lower()]
-    return filtered[:10]  # Return up to 10 matching contributors
+    return filtered[:10]
 
 def plot_top_contributors(contributors_data1, contributors_data2=None, repo1_name="Repository 1", repo2_name="Repository 2", username_filter=None):
-    """Plot top contributors comparison chart with username filtering"""
+    """Ploting top contributors comparison chart with username filtering"""
     fig = go.Figure()
     
     if contributors_data1:
@@ -292,7 +284,7 @@ def plot_top_contributors(contributors_data1, contributors_data2=None, repo1_nam
     return fig
 
 def analyze_single_repo(repo_url):
-    """Analyze and display metrics for a single repository"""
+    """Analyzing and displaying metrics for a single repository"""
     if not repo_url:
         st.info("Enter a GitHub repository URL to analyze its metrics.")
         return
@@ -303,7 +295,7 @@ def analyze_single_repo(repo_url):
     
     repo_data = data['repo_data']
     
-    # Display repository information
+    # Displaying repository information
     st.header("Repository Metrics")
     col1, col2 = st.columns(2)
     
@@ -312,7 +304,6 @@ def analyze_single_repo(repo_url):
     with col2:
         display_repo_details(repo_data, col2)
     
-    # Add download report button
     report = generate_report(repo_data, data['commits_data'], data['contributors_data'])
     st.download_button(
         label="📥 Download Analysis Report",
@@ -321,7 +312,7 @@ def analyze_single_repo(repo_url):
         mime="text/plain"
     )
     
-    # Get language statistics
+    # Getting language statistics
     lang_data = get_language_stats(repo_data)
     
     # Visualizations
@@ -367,7 +358,7 @@ def analyze_single_repo(repo_url):
         use_container_width=True
     )
     
-    # Display README preview at the end
+    # README preview
     if data['readme_content']:
         st.markdown("---")
         st.header("📖 README Preview")
@@ -382,28 +373,28 @@ def analyze_single_repo(repo_url):
             st.markdown(readme_content)
 
 def analyze_compare_repos(repo_url1, repo_url2):
-    """Compare and display metrics for two repositories"""
+    """Comparing and displaying metrics for two repositories"""
     if not repo_url1 or not repo_url2:
         st.info("Please enter both repository URLs for comparison.")
         return
     
-    # Get data for both repositories
+    # Getting data for both repositories
     data1 = get_repo_info(repo_url1)
     data2 = get_repo_info(repo_url2)
     
     if not data1 or not data2:
         return
     
-    # Display repository information
+    # Displaying repository information
     st.header("Repository Metrics")
     col1, col2 = st.columns(2)
     
-    # Display metrics for first repository
+    # Displaying metrics for first repository
     with col1:
         st.subheader(f"📊 {data1['repo_data']['name']}")
         display_repo_metrics(data1['repo_data'], col1)
         display_repo_details(data1['repo_data'], col1)
-        # Add download button for first repo
+
         report1 = generate_report(data1['repo_data'], data1['commits_data'], data1['contributors_data'], True)
         st.download_button(
             label=f"📥 Download {data1['repo_data']['name']} Report",
@@ -412,12 +403,11 @@ def analyze_compare_repos(repo_url1, repo_url2):
             mime="text/plain"
         )
     
-    # Display metrics for second repository
+    # Displaying metrics for second repository
     with col2:
         st.subheader(f"📊 {data2['repo_data']['name']}")
         display_repo_metrics(data2['repo_data'], col2)
         display_repo_details(data2['repo_data'], col2)
-        # Add download button for second repo
         report2 = generate_report(data2['repo_data'], data2['commits_data'], data2['contributors_data'], True)
         st.download_button(
             label=f"📥 Download {data2['repo_data']['name']} Report",
@@ -426,7 +416,7 @@ def analyze_compare_repos(repo_url1, repo_url2):
             mime="text/plain"
         )
     
-    # Get language statistics
+    # Getting language statistics
     lang_data1 = get_language_stats(data1['repo_data'])
     lang_data2 = get_language_stats(data2['repo_data'])
     
@@ -498,7 +488,6 @@ def main():
         
         st.markdown("---")
         
-        # Mode selection
         mode = st.radio(
             "Select Analysis Mode:",
             ["Single Repository", "Repository Comparison"]
@@ -529,12 +518,10 @@ def main():
         if repo_url1 and repo_url2:
             analyze_compare_repos(repo_url1, repo_url2)
     
-    # GitHub token warning
     with st.sidebar:
         if not (token or GITHUB_TOKEN):
             st.warning("⚠️ No GitHub token found. Some API requests might be rate-limited.")
         
-        # Add some helpful information
         st.markdown("---")
         st.markdown("### How to Use")
         if mode == "Single Repository":
